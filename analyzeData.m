@@ -7,7 +7,7 @@ timestamp = datestr(now,'yyyy-mm-dd HH-MM');
 d12packDir = fullfile(githubDir,'d12pack');
 addpath(d12packDir);
 
-projectDir = '\\ROOT\projects\GSA_Daysimeter\Federal_Highway\DaysimeterData';
+projectDir = '\\ROOT\projects\GSA_Daysimeter\Federal_Highway\DaysimeterData\fall';
 dataDir = projectDir;
 saveDir = fullfile(projectDir,'tables');
 
@@ -25,11 +25,19 @@ rn2 = datestr(datetime(0,0,0,1,0,0):duration(1,0,0):datetime(0,0,0,24,0,0),'HH:M
 RowNames = cellstr([rn1,rn2]);
 RowNames = [RowNames;{'Mean'}];
 
+IDs = matlab.lang.makeUniqueStrings({objArray.ID}');
+
+[IDs,I] = sort(IDs);
+
 for iObj = 1:nObj
     
-    obj = objArray(iObj);
+    obj = objArray(I(iObj));
     
     idxKeep = obj.Observation & obj.Compliance & ~obj.Error & ~obj.InBed;
+    
+    if ~any(idxKeep)
+        continue
+    end
     
     t = obj.Time(idxKeep);
     ai = obj.ActivityIndex(idxKeep);
@@ -48,9 +56,11 @@ for iObj = 1:nObj
     
     aiTB  = tb;
     luxTB = tb;
+    luxGeoTB = tb;
     claTB = tb;
     csTB  = tb;
     coverageTB = tb;
+    
     
     aiTB.Properties.DimensionNames{1} = 'Activity Index';
     luxTB.Properties.DimensionNames{1} = 'Illuminance';
@@ -58,6 +68,7 @@ for iObj = 1:nObj
     csTB.Properties.DimensionNames{1} = 'Circadian Stimulus';
     coverageTB.Properties.DimensionNames{1} = '# of Samples';
     coverageTB.Properties.RowNames{25} = 'Total';
+    luxGeoTB.Properties.RowNames{end} = 'Geometric Mean';
     
     for iCol = 1:nDates
         for iRow = 1:24
@@ -66,6 +77,7 @@ for iObj = 1:nObj
             if any(idx)
                 aiTB{iRow,iCol}  = mean(ai(idx));
                 luxTB{iRow,iCol} = mean(lux(idx));
+                luxGeoTB{iRow,iCol} = geomean(lux(idx));
                 claTB{iRow,iCol} = mean(cla(idx));
                 csTB{iRow,iCol}  = mean(cs(idx));
             end
@@ -76,13 +88,14 @@ for iObj = 1:nObj
         idx = t >= dates(iCol) & t < (dates(iCol)+duration(24,0,0));
         aiTB{25,iCol}  = mean(ai(idx));
         luxTB{25,iCol} = mean(lux(idx));
+        luxGeoTB{25,iCol} = geomean(lux(idx));
         claTB{25,iCol} = mean(cla(idx));
         csTB{25,iCol}  = mean(cs(idx));
         coverageTB{25,iCol} = sum(idx);
     end
     
     
-    sheet = obj.ID;
+    sheet = IDs{iObj};
     
     aiName = [timestamp,' Mean AI','.xlsx'];
     aiPath = fullfile(saveDir,aiName);
@@ -91,6 +104,10 @@ for iObj = 1:nObj
     luxName = [timestamp,' Mean Lux','.xlsx'];
     luxPath = fullfile(saveDir,luxName);
     writetable(luxTB,luxPath,'Sheet',sheet,'WriteVariableNames',true,'WriteRowNames',true);
+    
+    luxGeoName = [timestamp,'Geometric Mean Lux','.xlsx'];
+    luxGeoPath = fullfile(saveDir,luxGeoName);
+    writetable(luxGeoTB,luxGeoPath,'Sheet',sheet,'WriteVariableNames',true,'WriteRowNames',true);
     
     claName = [timestamp,' Mean CLA','.xlsx'];
     claPath = fullfile(saveDir,claName);

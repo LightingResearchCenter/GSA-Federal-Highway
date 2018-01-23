@@ -14,8 +14,8 @@ timestamp = datestr(now,'yyyy-mm-dd_HHMM');
 rootDir = '\\root\projects';
 calPath = fullfile(rootDir,'DaysimeterAndDimesimeterReferenceFiles',...
     'recalibration2016','calibration_log.csv');
-prjDir  = fullfile(rootDir,'GSA_Daysimeter','Federal_Highway','DaysimeterData');
-orgDir  = fullfile(prjDir,'OriginalData');
+prjDir  = fullfile(rootDir,'GSA_Daysimeter','Federal_Highway','DaysimeterData','fall2');
+orgDir  = fullfile(prjDir,'originalData');
 dbName  = [timestamp,'.mat'];
 dbPath  = fullfile(prjDir,dbName);
 
@@ -37,7 +37,11 @@ cdfPaths     = fullfile(orgDir,{listingCDF.name});
 loginfoPaths = regexprep(cdfPaths,'\.cdf','-LOG.txt');
 datalogPaths = regexprep(cdfPaths,'\.cdf','-DATA.txt');
 
-for iFile = numel(loginfoPaths):-1:1
+tmp = load('\\ROOT\projects\GSA_Daysimeter\Federal_Highway\DaysimeterData\fall2\2016-12-13_1345.mat','objArray');
+objArray =  tmp.objArray;
+
+% for iFile = numel(loginfoPaths):-1:1
+for iFile = 8
     cdfData = daysimeter12.readcdf(cdfPaths{iFile});
     ID = cdfData.GlobalAttributes.subjectID;
     
@@ -56,8 +60,10 @@ for iFile = numel(loginfoPaths):-1:1
     % Crop the data
     thisObj = crop(thisObj);
     
-    objArray(iFile,1) = thisObj;
+    
 end
+
+objArray = [objArray;thisObj];
 
 %% Save converted data to file
 save(dbPath,'objArray');
